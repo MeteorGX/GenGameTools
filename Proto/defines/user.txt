@@ -1,0 +1,28 @@
+//登录相关
+
+.c2s_login_req
+	//请求登录, 客户端连接成功后发的第一条协议
+	{
+		uint:sid 		//服号
+		uint:ver 		//版本号
+		string:username //账号
+		string:password // 密码
+	}
+
+.s2c_login_res
+	//登录响应, 账号不存在会默认帮助其注册
+	{
+		uint:state		//登录状态: 0-正常 | 1-服务器暂未开放 | 2-账号密码错误 | 3-禁止登录
+		uint:ctime		//创建时间
+		uint:uid		//账号id
+		uint:player_id	//角色id: 等于0代表需要创建角色跳创角页面
+	}
+
+
+.c2s_logout_req
+	//请求登出
+	{
+	    uint:timestamp  //当前客户端时间戳,不要为0
+	}
+
+.s2c_logout_res

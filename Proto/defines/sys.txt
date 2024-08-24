@@ -1,0 +1,28 @@
+//常规系统配置
+
+
+.c2s_sys_heartbeat_req
+    //请求心跳包
+    {
+        uint:timestamp  //客户端时间戳
+    }
+
+
+.s2c_sys_heartbeat_res
+    //响应心跳包
+    {
+        uint:timestamp  //服务端时间戳
+    }
+
+
+.c2s_sys_echo_req
+    //回写功能, 用于测试连接消息回合是否正常
+    {
+        uint:val         //提交uint32值会原样返回
+    }
+
+.s2c_sys_echo_res
+    //回写功能响应
+    {
+        uint:val         //提交的值
+    }
