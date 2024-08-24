@@ -433,7 +433,8 @@ class ExcelDoc:
     def decode(self, srv_path, clt_path, srv_writer, clt_writer):
 
         print("-".ljust(88, "-"))
-        print("output path :", srv_path)
+        print("output server path :", srv_path)
+        print("output client path :", clt_path)
         print("start covert excel: ", self.file)
         base_name = os.path.splitext(self.file)[0]
         wb = openpyxl.load_workbook(self.abspath)

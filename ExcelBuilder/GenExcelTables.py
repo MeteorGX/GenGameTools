@@ -87,8 +87,8 @@ class Reader:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Export Excel Tables")
     parser.add_argument("-i", "--input", help="read all files from this path", required=True)
-    parser.add_argument("-s", "--srv", help="write all server file to this path", required=True)
-    parser.add_argument("-c", "--clt", help="write all client file to this path", required=True)
+    parser.add_argument("-s", "--srv", help="write all server file to this path", required=False, default="")
+    parser.add_argument("-c", "--clt", help="write all client file to this path", required=False, default="")
     parser.add_argument("-t", "--timeout", help="only convert files modified within seconds", required=False, type=int,
                         default=-1)
     parser.add_argument("-f", "--suffix", help="what type of file will be read.empty mean all files", required=False,
@@ -103,6 +103,9 @@ if __name__ == '__main__':
     input_path = os.path.abspath(args.input)
     if not os.path.exists(input_path):
         raise Exception("Directory Non Exists: " + args.input)
+
+    if len(args.srv.strip()) <= 0 and len(args.clt.strip()) <= 0:
+        raise Exception("Arguments are required: -s/--srv|-c/--clt")
 
     srv_path = args.srv if args.srv.endswith("/") else args.srv + "/"
     clt_path = args.clt if args.clt.endswith("/") else args.clt + "/"
