@@ -10,9 +10,11 @@ PY_EXE = "python.exe" if os.name == "nt" else "python"
 TPL_DIR = os.path.join(FILE_DIR, "tpl")
 TPL_HRL_FILE = os.path.join(TPL_DIR, "protocol.hrl.tpl")
 TPL_ERL_FILE = os.path.join(TPL_DIR, "protocol.erl.tpl")
+HRL_FILE = "protocols.hrl"
 
 TPL_ERL_KEYBOARD = "___TPL_FILE___"
-TPL_HRL_KEYBOARD = "%% !__C2S_TEXT__! %%"
+TPL_HRL_C2S_TEXT_KEYBOARD = "%% !__C2S_TEXT__! %%"
+TPL_HRL_S2C_TEXT_KEYBOARD = "%% !__S2C_TEXT__! %%"
 TPL_HRL_C2S_KEYBOARD = "%% !__C2S__! %%"
 TPL_HRL_S2C_KEYBOARD = "%% !__S2C__! %%"
 
@@ -59,13 +61,13 @@ if __name__ == "__main__":
                 c2s.append("-define(%s,%s)." % (p_name.upper(), p_id))
 
     # 构建遍历
-    hrl_data = []
+    hrl_c2s_data = []
     for (proto_id, proto_name) in data:
         proto_file = os.path.abspath(os.path.join(args.output, proto_name + ".erl"))
         print("id:", proto_id, "|", "name:", proto_file)
 
         # 写入协议映射表
-        hrl_data.append("\t%s => %s" % (proto_id, proto_name))
+        hrl_c2s_data.append("\t%s => %s" % (proto_id, proto_name))
 
         # 写入协议文件
         with open(TPL_ERL_FILE, 'r', encoding="utf-8") as file:
@@ -73,12 +75,12 @@ if __name__ == "__main__":
             with open(proto_file, "w+", encoding="utf-8") as p:
                 p.write(content.replace(TPL_ERL_KEYBOARD, proto_name))
 
-    if len(hrl_data) > 0:
+    if len(hrl_c2s_data) > 0:
         with open(TPL_HRL_FILE, 'r', encoding="utf-8") as file:
             content = file.read()
-            proto_file = os.path.abspath(os.path.join(args.output, "protocols.hrl"))
+            proto_file = os.path.abspath(os.path.join(args.output, HRL_FILE))
             with open(proto_file, 'w+', encoding="utf-8") as p:
-                content = content.replace(TPL_HRL_KEYBOARD, ",\n".join(hrl_data))
+                content = content.replace(TPL_HRL_C2S_TEXT_KEYBOARD, ",\n".join(hrl_c2s_data))
                 content = content.replace(TPL_HRL_C2S_KEYBOARD, "\n".join(c2s))
                 content = content.replace(TPL_HRL_S2C_KEYBOARD, "\n".join(s2c))
                 p.write(content)

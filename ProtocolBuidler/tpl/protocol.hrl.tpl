@@ -6,7 +6,7 @@
 -define(__PROTO_AUTO_HRL__, 1).
 
 
-%% @doc 协议对象
+%% @doc C2S协议对象
 -define(C2S_PROTOCOLS, #{
 %% !__C2S_TEXT__! %%
 }).
