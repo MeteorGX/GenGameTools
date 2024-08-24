@@ -8,6 +8,7 @@ from writer_erlang_hrl import *
 from writer_elixir import *
 from writer_lua import *
 from writer_xml import *
+from writer_gdscript import *
 from writer_json_object import *
 from writer_json_array import *
 from writer_python import *
@@ -22,8 +23,8 @@ class Reader:
     # @clt_path  :客户端输出目录
     # @timeout   :只处理文档最后更改时间在N秒内的文档
     # @suffix    :excel文件后缀
-    def __init__(self, input_path, srv, clt, timeout, suffix, srv_writer, clt_writer):
-        self.input_path = input_path
+    def __init__(self, dirname, srv, clt, timeout, suffix, srv_writer, clt_writer):
+        self.input_path = dirname
         self.srv_path = srv
         self.clt_path = clt
         self.timeout = timeout
@@ -94,10 +95,10 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--suffix", help="what type of file will be read.empty mean all files", required=False,
                         default=".xlsx")
     parser.add_argument("-w", "--swriter",
-                        help="which server writer you wish to use:lua|xml|json|python|elixir|erlanghrl|erlangerl",
+                        help="which server writer you wish to use:lua|xml|json|gdscript|elixir|erlanghrl|erlangerl",
                         required=False, default=None)
     parser.add_argument("-l", "--cwriter",
-                        help="which client writer you wish to use:lua|xml|json|python|elixir|erlanghrl|erlangerl",
+                        help="which client writer you wish to use:lua|xml|json|gdscript|elixir|erlanghrl|erlangerl",
                         required=False, default=None)
     args = parser.parse_args()
     input_path = os.path.abspath(args.input)

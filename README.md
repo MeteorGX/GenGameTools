@@ -83,6 +83,9 @@ python ExcelBuilder/GenExcelTables.py --input Excel/xls --srv Excel/output/serve
 
 # 导出 lua 客户端所需文件
 python ExcelBuilder/GenExcelTables.py --input Excel/xls --clt Excel/output/client --timeout -1 --suffix .xlsx --cwriter lua
+
+# 导出 Godot 客户端所需文件
+python ExcelBuilder/GenExcelTables.py --input Excel/xls --clt Excel/output/client --timeout -1 --suffix .xlsx --cwriter gdscript
 ```
 
 这里就会导出文件到 ` Excel/output/server` 和 `Excel/output/client` 目录.
