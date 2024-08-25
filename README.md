@@ -56,13 +56,15 @@ python ProtocolBuidler\GenProtocolLoader.py -d Proto/defines -o Proto/output
 [ uint32(数据长度) ][ uint32(协议id) ][ bytes(数据二进制) ]
 ```
 
-二进制封包数据后续再扩展怎么做数据封包和解包, 这里暂时仅做示范, 这里也提供个 `Erlang` 服务端解构工具:
+二进制封包数据后续再扩展怎么做数据封包和解包, 这里暂时仅做示范, 这里也提供个 `Erlang` 服务端和 `Godot` 客户端编码解码工具:
 
 ```shell
 # -f 就是 GenProtocolLoader.py 解析的协议文件, -o 就是 Erlang 协议输出目录
 python ProtocolBuidler\GenProtocolErlang.py -f Proto/output/protocol.txt -o Proto/output/erlang
-
 # 最后会在 Proto/output/erlang 目录输出对应源文件和头文件
+
+# Godot 功能也是一致
+python ProtocolBuidler\GenProtocolGodot.py -f Proto/output/protocol.txt -o Proto/output/gd
 ```
 
 ## 策划打表
