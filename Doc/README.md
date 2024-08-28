@@ -1,5 +1,6 @@
 # 项目说明与规划
 
+- [外部参数](args.md)
 - [网络库](network.md)
 - [玩家模块](agent.md)
 - [分区分服](region.md)

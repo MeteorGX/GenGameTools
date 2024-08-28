@@ -20,16 +20,16 @@
 
 ```shell
 # 构建名为 fight 的游戏项目, 附带有工具库
-python Rebar3Builder\GenRebar3Project.py -p fight -lib 
+python Rebar3Builder/GenRebar3Project.py -p fight -lib 
 cd fight # 进入项目以此为根目录
 ```
 
 后续就是构建网络应用的的 `app`:
 
 ```shell
-mkdir -p apps\net\src # 源代码功能放置于此
-touch apps\net\src\net.app.src #  app 信息文件
-touch apps\net\src\net_app.erl # 应用入口 main 文件
+mkdir -p apps/net/src # 源代码功能放置于此
+touch apps/net/src/net.app.src #  app 信息文件
+touch apps/net/src/net_app.erl # 应用入口 main 文件
 ```
 
 这里首先编写处理应用启动相关信息内容 `net.app.src`:
@@ -82,11 +82,11 @@ stop(_State) ->
 这里创建独立 `tcp` 目录做服务器监听处理:
 
 ```shell
-mkdir apps\net\src\tcp # 创建 TCP 服务目录
-touch apps\net\src\tcp\tcp_listener.erl # 监听服务, 实际上就是 supervisor 启动 gen_tcp:listen
-touch apps\net\src\tcp\tcp_acceptor.erl # 多个进程监听调配服务, 实际上就是 gen_server 启动 gen_tcp:accept
-touch apps\net\src\tcp\tcp_executor.erl # accept 之后在服务端动态创建 agent, 实际上为 supervisor 的 simple_one_for_one 动态 fork 进程
-touch apps\net\src\tcp\tcp_worker.erl # 基于 tcp_executor 的 gen_server, 会话是被动态创建并挂载, 客户端在服务器当中会话对象
+mkdir apps/net/src/tcp # 创建 TCP 服务目录
+touch apps/net/src/tcp/tcp_listener.erl # 监听服务, 实际上就是 supervisor 启动 gen_tcp:listen
+touch apps/net/src/tcp/tcp_acceptor.erl # 多个进程监听调配服务, 实际上就是 gen_server 启动 gen_tcp:accept
+touch apps/net/src/tcp/tcp_executor.erl # accept 之后在服务端动态创建 agent, 实际上为 supervisor 的 simple_one_for_one 动态 fork 进程
+touch apps/net/src/tcp/tcp_worker.erl # 基于 tcp_executor 的 gen_server, 会话是被动态创建并挂载, 客户端在服务器当中会话对象
 ```
 
 这里面的流程关系是这样:
@@ -113,7 +113,7 @@ touch apps\net\src\tcp\tcp_worker.erl # 基于 tcp_executor 的 gen_server, 会�
   listen :: port(), %% 监听 Listener Socket 句柄
   socket :: port(), %% 客户端 Socket 会话句柄
   ref :: number(), %% Socket 依赖,Ref
-  session, %% 会话
+  session :: #session{}, %% 会话结构对象, 后续有定义
   bytes = <<>> :: bitstring(), %% 客户端请求的二进制数据流
   mod :: module() | atom() | pid(), %% 回调过来的模块|进程
   func :: atom() %% 回调唤起函数
@@ -160,8 +160,66 @@ touch apps\net\src\tcp\tcp_worker.erl # 基于 tcp_executor 的 gen_server, 会�
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ```
 
-> 内部可以记录其他跨进程信息, 一般记录那些进程缓存数据
+> 内部可以记录其他跨进程信息, 一些不那么重要的系统数据可以缓存放置在 session 结构之中
 
+暂时确定好之后就可以编写头信息用 `record` 机构记录:
+
+```shell
+mkdir -p apps/net/include # 头文件记录
+touch apps/net/include/agent.hrl # 会话记录
+```
+
+结构体头文件的最终内容如下:
+
+```erlang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 服务器代理 - Begin
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-record(agent, {
+  listen :: port(), %% 监听 Listener Socket 句柄
+  socket :: port(), %% 客户端 Socket 会话句柄
+  ref :: number(), %% Socket 依赖,Ref
+  session :: #session{}, %% 会话
+  bytes = <<>> :: bitstring(), %% 客户端请求的二进制数据流
+  mod :: module() | atom() | pid(), %% 回调过来的模块|进程
+  func :: atom() %% 回调唤起函数
+}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 服务器代理 - End
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 玩家在服务器挂载实体 - Begin
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-record(session, {
+
+  %% 账号基础信息 ---------------------------------------
+  sid = 0 :: non_neg_integer(), % 服务器ID
+  uid = 0 :: non_neg_integer(), % 用户id
+  id = 0 :: non_neg_integer(), % 角色id
+  version = 0 :: non_neg_integer(), % 游戏客户端版本
+  proc_id :: pid(), % 进程ID
+  scene_id = 0 :: non_neg_integer(), % 关卡场景id, 简单游戏业务不需要记录进程
+  socket :: port(), % Socket对象
+  status = 0 :: non_neg_integer(), %% 会话状态, 0 代表未授权, 其他值扩展出其他状态
+
+  %% 登录相关
+  create_at = 0 :: non_neg_integer(), % 会话创建时间 | 登录时间
+  ip_address = "Unknown" :: string(), % 会话创建IP | 登录IP
+  online = 0 :: non_neg_integer(), % 在线时长, 不计算本次登录
+
+  %% 上次心跳时间, 按照当前心跳时间比较上次心跳时间防止心跳过快, 过快代表异常直接中断会话
+  % heartbeat_time = 0 :: non_neg_integer(),
+
+  logs = [] :: list() % 最新10条请求协议, 用于记录调试
+}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 玩家在服务器挂载实体 - End
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+```
+
+> 注: 如果是编写系统库尽可能对外的结构要将类型声明好, 避免传递一些奇奇怪怪的数据被内部调用出问题
 
 
 
