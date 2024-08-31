@@ -761,7 +761,8 @@ send_bytes(_, _) -> ?false.
 
 %% @doc 数据优化推送
 -spec send_flush(port(), bitstring()) -> ?ok|{?error, Reason}
-  when Reason :: ?closed | {?timeout, RestData} | inet:posix().
+  when Reason :: ?closed | {?timeout, RestData} | inet:posix(),
+   RestData :: binary() | erlang:iovec().
 send_flush(Socket, Bytes) ->
   <<_Len:?u32_t, _Protocol:?u32_t, _Message/?bytes_t>> = Bytes,
   %% !!! 注意这里是有版本BUG
