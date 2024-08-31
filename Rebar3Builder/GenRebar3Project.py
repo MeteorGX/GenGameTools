@@ -111,7 +111,7 @@ def rewrite_rebar_config(project_dir, project_name):
 {rebar_packages_cdn, "https://hexpm.upyun.com"}.
     """.replace("__VERSION__", BUILD_YMD).replace("__PROJECT__", project_name)
     with open(rebar_config, "w", encoding="utf-8") as f:
-        f.write(template)
+        f.write(template.strip())
 
 
 # rewrite erlang.config
@@ -128,7 +128,7 @@ def rewrite_app_config(project_dir, project_name):
 ].
 """.replace("__PROJECT__", project_name)
     with open(sys_config, "w", encoding="utf-8") as f:
-        f.write(template)
+        f.write(template.strip())
 
     # 写入 vm.args
     template = r"""
@@ -143,7 +143,7 @@ def rewrite_app_config(project_dir, project_name):
 +e 102400 # ETS最大数量
     """.replace("__PROJECT__", project_name)
     with open(vm_args, "w", encoding="utf-8") as f:
-        f.write(template)
+        f.write(template.strip())
 
 
 # rewrite constant header
@@ -279,7 +279,7 @@ def rewrite_constant_header(project_dir, project_name):
                 .replace("__CONSTANT_NAME__", "__CONSTANT_" + project_keyboard + "__")
                 .replace("__CONSTANT_VER__", BUILD_YMD))
     with open(project_header_file, "w", encoding="utf-8") as f:
-        f.write(template)
+        f.write(template.strip())
 
 
 # rewrite convert utils
@@ -459,7 +459,7 @@ hex(N) when N >= 10, N < 16 ->
 
     """
     with open(os.path.join(project_tools_dir, "convert_utils.erl"), "w", encoding="utf-8") as f:
-        f.write(template)
+        f.write(template.strip())
 
     # 最终写入应用版本内容
     utils_template = r"""
@@ -480,7 +480,7 @@ hex(N) when N >= 10, N < 16 ->
   ]}.
   """.replace("__VERSION__", BUILD_YMD)
     with open(os.path.join(project_tools_dir, "utils.app.src"), "w", encoding="utf-8") as f:
-        f.write(utils_template)
+        f.write(utils_template.strip())
 
 
 # rewrite tool utils
@@ -586,7 +586,7 @@ sleep(MillSec, _F) ->
   sleep(MillSec).
     """
     with open(os.path.join(project_tools_dir, "proc_utils.erl"), "w", encoding="utf-8") as f:
-        f.write(proc_template)
+        f.write(proc_template.strip())
 
     # 写入基础库工具 - sys
     sys_template = r"""
@@ -617,7 +617,10 @@ sleep(MillSec, _F) ->
   rand_str/1,
   rand_str/2,
   area_id/2,
-  guid/2
+  guid/2,
+  send_bytes/2,
+  send_flush/2,
+  ip_address/1
 ]).
 
 %% @doc 获取主机目前CPU核心线程, 用于进程分配调度
@@ -632,8 +635,8 @@ cpu_cores() ->
       Cores;
     Cores -> Cores
   end.
-  
-  
+
+
 %% @doc 获取 Erlang 目前运行在CPU哪个核心线程
 -spec cpu_core_id() -> pos_integer().
 cpu_core_id() ->
@@ -667,7 +670,7 @@ os_type() ->
       OsType;
     OsType -> OsType
   end.
-  
+
 %% @doc 设置崩溃拦截
 -spec set_trap_exit(?true | ?false) -> term().
 set_trap_exit(Flag) -> erlang:process_flag(?trap_exit, Flag).
@@ -688,8 +691,8 @@ uniform() ->
   erlang:put(random_seed, {R1, R2, R3}),
   R = L1 / 30269 + L2 / 30307 + L3 / 30323,
   R - erlang:trunc(R).
-  
-  
+
+
 %% @doc 产生介于Min到Max之间的随机整数
 rand(Same, Same) -> Same;
 rand(N1, N2) ->
@@ -699,8 +702,8 @@ rand(N1, N2) ->
   %% 如果没有种子，将从核心服务器中去获取一个种子，以保证不同进程都可取得不同的种子
   M = Min - 1,
   ?MODULE:uniform(Max - M) + M.
-  
-  
+
+
 %% @doc 从列表随机抽取元素
 rand_list([]) -> ?null;
 rand_list(List) ->
@@ -715,8 +718,8 @@ rand_str(0, Chars) -> Chars;
 rand_str(Len, Chars) ->
   Value = 97 + ?MODULE:uniform(25),
   rand_str(Len - 1, [Value | Chars]).
-  
-  
+
+
 %% @doc 合并渠道+区服的唯一区域Id, 方便后续合服
 %% MajorId 渠道不超过255个, 也就是 0xff
 %% MinorId 区服不超过65535, 也就是 0xffff
@@ -741,9 +744,57 @@ guid(MajorId, MinorId) when
   MS = erlang:system_time(millisecond),
   S = erlang:system_time(seconds),
   ((MS div 1000 + S * 1000) bsl (12 + 10)) + (MinorId bsl 10) + MajorId.
+
+
+%% @doc 推送信息, 优先采用的数推送方法
+send_bytes(_Socket, <<>>) -> ?true;
+send_bytes(Socket, Bytes) when erlang:is_port(Socket) ->
+  case send_flush(Socket, Bytes) of
+    ?ok -> ?true;
+    {?error, _} -> ?false
+  end;
+send_bytes(Pid, Bytes) when erlang:is_pid(Pid) ->
+  % 进程推送 {send_bytes,bytes} 信号
+  proc_utils:proc_send(Pid, {send_bytes, Bytes});
+send_bytes(_, _) -> ?false.
+
+
+%% @doc 数据优化推送
+-spec send_flush(port(), bitstring()) -> ?ok|{?error, Reason}
+  when Reason :: ?closed | {?timeout, RestData} | inet:posix().
+send_flush(Socket, Bytes) ->
+  <<_Len:?u32_t, _Protocol:?u32_t, _Message/?bytes_t>> = Bytes,
+  %% !!! 注意这里是有版本BUG
+  %% otp-27 erts-15: 新版本少了2两个位
+  %% Use erlang:port_command(Socket, <<0,0,0,1>>), but only receive <<0,1>>.
+  %% otp-25 erts-13.2.2.8: 旧版本正常工作
+  %% Use erlang:port_command(Socket, <<0,0,0,1>>), receive <<0,0,0,1>>.
+  %% Issues: https://github.com/erlang/otp/issues/8635
+  %try erlang:port_command(Socket, Bytes, [force, nosuspend]) of
+  try gen_tcp:send(Socket, Bytes) of
+    ?ok -> ?ok;
+    {?error, Reason} -> {?error, Reason}
+  catch Err:Reason ->
+    io:format("Failed by SendFlush[~w]:~p~n", [Err, Reason]),
+    {?error, einval}
+  end.
+
+
+%% @doc 获取Socket的IP地址
+-spec ip_address(port()) -> list().
+ip_address(Socket) ->
+  case inet:peername(Socket) of
+    {?ok, {IP, _}} ->
+      IPS = [integer_to_list(X) || X <- erlang:tuple_to_list(IP)],
+      if length(IPS) > 6 ->
+        string:join(IPS, ":");
+        ?true -> string:join(IPS, ".")
+      end;
+    _ -> "Unknown"
+  end.
     """
     with open(os.path.join(project_tools_dir, "sys_utils.erl"), "w", encoding="utf-8") as f:
-        f.write(sys_template)
+        f.write(sys_template.strip())
 
     # 写入基础库工具 - datetime
     datetime_template = r"""
@@ -856,7 +907,7 @@ date_yw() ->
   Y * 100 + WeekNum.
     """
     with open(os.path.join(project_tools_dir, "datetime_utils.erl"), "w", encoding="utf-8") as f:
-        f.write(datetime_template)
+        f.write(datetime_template.strip())
 
     # 写入基础库工具 - byte
     byte_template = r"""
@@ -982,7 +1033,7 @@ encode_tuples_2(T, Size, Idx, Res) ->
   end.
     """
     with open(os.path.join(project_tools_dir, "byte_utils.erl"), "w", encoding="utf-8") as f:
-        f.write(byte_template)
+        f.write(byte_template.strip())
 
 
 # Main
