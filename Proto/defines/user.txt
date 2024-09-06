@@ -1,13 +1,15 @@
 //登录相关
 
 .c2s_login_req
-	//请求登录, 客户端连接成功后发的第一条协议
-	{
-		uint:sid 		//服号
-		uint:ver 		//版本号
-		string:username //账号
-		string:password // 密码
-	}
+    //请求登录, 客户端连接成功后发的第一条协议
+    {
+        uint:sid        // 服务器id
+        uint:ver        // 游戏客户端版本号
+        uint:ty         // 登录类型: 1-账号密码|2-Token登录|3-Google登录|4-微信登录....
+        string:username // 账号: 如果需要账号|标识追加, 否则传递空字符串
+        string:password // 密码和Token
+        string:device   // 客户端提交的设备信息JSON, 用于写入登录日志时候记录当时玩家设备信息
+    }
 
 .s2c_login_res
 	//登录响应, 账号不存在会默认帮助其注册
@@ -15,7 +17,7 @@
 		uint:state		//登录状态: 0-正常 | 1-服务器暂未开放 | 2-账号密码错误 | 3-禁止登录
 		uint:ctime		//创建时间
 		uint:uid		//账号id
-		uint:player_id	//角色id: 等于0代表需要创建角色跳创角页面
+		uint:id	//角色id: 等于0代表需要创建角色跳创角页面
 	}
 
 

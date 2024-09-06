@@ -61,6 +61,11 @@ handle_info({tcp, _Socket, Bytes}, State = #client_svr_state{}) ->
   io:format("Net Message ~w~n", [Bytes]),
   handle_message(Bytes, State);
 
+%% @doc Socket断开
+handle_info({tcp_closed, _Socket}, _ = #client_svr_state{}) ->
+  io:format("Socket Closed ~n"),
+  {?stop, "Scoket Closed"};
+
 %% @doc 默认处理
 handle_info(Info, State = #client_svr_state{}) ->
   io:format("Unknown Message ~w~n", [Info]),
