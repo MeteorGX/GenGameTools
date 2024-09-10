@@ -1,0 +1,28 @@
+//角色相关
+
+.c2s_role_random_nickname_req
+    //获取随机昵称
+    {
+        uint:sex        // 玩家性别
+    }
+
+.s2c_role_random_nickname_res
+    //响应随机昵称
+    {
+        uint:sex        // 玩家性别
+        string:nickname // 昵称名称
+    }
+
+
+.c2s_role_create_req
+    //创建角色
+    {
+        string:nickname // 昵称, 数据库允许重复, 但是长度需要限制64字符之内
+    }
+
+.s2c_role_create_res
+	//创建角色响应
+	{
+		uint:state		//登录状态: 0-正常 | 1-服务器暂未开放 | 2-账号密码错误 | 3-禁止登录
+	}
+

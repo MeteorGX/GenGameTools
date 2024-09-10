@@ -33,7 +33,7 @@ python Rebar3Builder/GenRebar3Project.py -p game -lib
 
 ```shell
 # -d 为读取的协议模板, -o 为导出协议模板文件目录, 默认导出协议文件名为 protocol.txt
-python ProtocolBuidler\GenProtocolLoader.py -d Proto/defines -o Proto/output
+python ProtocolBuidler/GenProtocolLoader.py -d Proto/defines -o Proto/output
 ```
 
 最后导出的模板文件, 也就是 `Proto/output/protocol.txt` 文件:
